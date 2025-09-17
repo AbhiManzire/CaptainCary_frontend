@@ -613,7 +613,7 @@ const CrewManagement = () => {
         {/* Crew Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div 
-            className="overflow-x-auto max-h-[35px] overflow-y-auto border border-gray-200 rounded-lg"
+            className="overflow-x-auto max-h-[350px] overflow-y-auto border border-gray-200 rounded-lg"
             style={{
               scrollbarWidth: 'thin',
               scrollbarColor: '#6B7280 #F3F4F6'

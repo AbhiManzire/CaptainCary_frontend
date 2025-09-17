@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { Ship, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
-const ClientLogin = () => {
+const AdminLogin = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -15,11 +15,11 @@ const ClientLogin = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    const result = await login(data.email, data.password, 'client');
+    const result = await login(data.email, data.password, 'admin');
     
     if (result.success) {
       toast.success('Login successful!');
-      navigate('/client/dashboard');
+      navigate('/admin/dashboard');
     } else {
       toast.error(result.message);
     }
@@ -36,10 +36,10 @@ const ClientLogin = () => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Client Login
+          Admin Login
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Access the client portal
+          Access the admin dashboard
         </p>
       </div>
 
@@ -149,4 +149,4 @@ const ClientLogin = () => {
   );
 };
 
-export default ClientLogin;
+export default AdminLogin;
