@@ -21,7 +21,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-
+console.log("???????????")
   useEffect(() => {
     fetchDashboardData();
   }, []);
