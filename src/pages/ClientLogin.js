@@ -19,7 +19,7 @@ const ClientLogin = () => {
     
     if (result.success) {
       toast.success('Login successful!');
-      navigate('/client/portal');
+      navigate('/client/dashboard');
     } else {
       toast.error(result.message);
     }

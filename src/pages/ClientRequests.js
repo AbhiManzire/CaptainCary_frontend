@@ -6,35 +6,29 @@ import {
   Ship, 
   LogOut, 
   Search, 
-  Plus, 
   Eye, 
-  Edit, 
   Check, 
   X, 
+  MessageSquare,
   Building,
-  Mail,
-  Phone,
-  MapPin,
-  Users,
+  User,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  MoreVertical,
-  UserCheck,
-  UserX,
-  Calendar,
-  MessageSquare
+  Filter,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 
-const ClientManagement = () => {
+const ClientRequests = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [clients, setClients] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showResponseModal, setShowResponseModal] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,25 +39,27 @@ const ClientManagement = () => {
   // Filters
   const [filters, setFilters] = useState({
     search: '',
-    isActive: ''
+    status: ''
   });
   
-  // Create client form
-  const [createForm, setCreateForm] = useState({
-    companyName: '',
-    email: '',
-    password: '',
-    contactPerson: '',
-    phone: '',
-    address: '',
-    industry: ''
+  // Response form
+  const [responseForm, setResponseForm] = useState({
+    status: '',
+    adminResponse: ''
   });
 
+  const STATUS_OPTIONS = [
+    { value: 'pending', label: 'Pending', color: 'yellow' },
+    { value: 'approved', label: 'Approved', color: 'green' },
+    { value: 'rejected', label: 'Rejected', color: 'red' },
+    { value: 'completed', label: 'Completed', color: 'blue' }
+  ];
+
   useEffect(() => {
-    fetchClients();
+    fetchRequests();
   }, [currentPage, filters]);
 
-  const fetchClients = async () => {
+  const fetchRequests = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -72,65 +68,80 @@ const ClientManagement = () => {
         ...filters
       });
       
-      const response = await api.get(`/admin/clients?${params}`);
-      setClients(response.data.clients);
+      console.log('Fetching requests with params:', params.toString());
+      const response = await api.get(`/admin/requests?${params}`);
+      console.log('Requests response:', response.data);
+      setRequests(response.data.requests);
       setTotalPages(response.data.totalPages);
       setTotal(response.data.total);
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      console.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilterChange = (key, value) => {
+    console.log('Filter changed:', key, value);
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
-  const handleCreateClient = async () => {
+  const handleViewDetails = async (requestId) => {
     try {
-      await api.post('/admin/clients', createForm);
-      setShowCreateModal(false);
-      setCreateForm({
-        companyName: '',
-        email: '',
-        password: '',
-        contactPerson: '',
-        phone: '',
-        address: '',
-        industry: ''
-      });
-      fetchClients();
-    } catch (error) {
-      console.error('Error creating client:', error);
-    }
-  };
-
-  const handleStatusUpdate = async (clientId, isActive) => {
-    try {
-      await api.patch(`/admin/clients/${clientId}/status`, { isActive });
-      fetchClients();
-    } catch (error) {
-      console.error('Error updating client status:', error);
-    }
-  };
-
-  const handleViewDetails = async (clientId) => {
-    try {
-      const response = await api.get(`/admin/clients/${clientId}`);
-      setSelectedClient(response.data);
+      const response = await api.get(`/admin/requests/${requestId}`);
+      setSelectedRequest(response.data);
       setShowDetailModal(true);
     } catch (error) {
-      console.error('Error fetching client details:', error);
+      console.error('Error fetching request details:', error);
     }
+  };
+
+  const handleRespond = (request) => {
+    setSelectedRequest(request);
+    setResponseForm({
+      status: request.status,
+      adminResponse: request.adminResponse || ''
+    });
+    setShowResponseModal(true);
+  };
+
+  const handleSubmitResponse = async () => {
+    try {
+      await api.patch(`/admin/requests/${selectedRequest._id}/respond`, responseForm);
+      setShowResponseModal(false);
+      setShowDetailModal(false);
+      fetchRequests();
+    } catch (error) {
+      console.error('Error responding to request:', error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = STATUS_OPTIONS.find(s => s.value === status);
+    if (!statusConfig) return null;
+    
+    const colorClasses = {
+      yellow: 'bg-yellow-100 text-yellow-800',
+      green: 'bg-green-100 text-green-800',
+      red: 'bg-red-100 text-red-800',
+      blue: 'bg-blue-100 text-blue-800'
+    };
+    
+    return (
+      <span className={`px-2 py-1 text-xs rounded-full ${colorClasses[statusConfig.color]}`}>
+        {statusConfig.label}
+      </span>
+    );
   };
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -142,7 +153,7 @@ const ClientManagement = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Ship className="h-8 w-8 text-primary-600 mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Client Requests</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {user?.fullName}</span>
@@ -166,34 +177,45 @@ const ClientManagement = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
-              <Building className="h-8 w-8 text-blue-600" />
+              <MessageSquare className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Total Clients</p>
+                <p className="text-sm font-medium text-gray-500">Total Requests</p>
                 <p className="text-2xl font-semibold text-gray-900">{total}</p>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
+              <Clock className="h-8 w-8 text-yellow-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Active</p>
+                <p className="text-sm font-medium text-gray-500">Pending</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {clients.filter(c => c.isActive).length}
+                  {requests.filter(r => r.status === 'pending').length}
                 </p>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
-              <UserX className="h-8 w-8 text-red-600" />
+              <Check className="h-8 w-8 text-green-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Inactive</p>
+                <p className="text-sm font-medium text-gray-500">Approved</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {clients.filter(c => !c.isActive).length}
+                  {requests.filter(r => r.status === 'approved').length}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center">
+              <X className="h-8 w-8 text-red-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Rejected</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {requests.filter(r => r.status === 'rejected').length}
                 </p>
               </div>
             </div>
@@ -210,7 +232,7 @@ const ClientManagement = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search by company name, contact person, or email..."
+                    placeholder="Search by client, crew, or request type..."
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full"
@@ -221,60 +243,59 @@ const ClientManagement = () => {
               {/* Filters */}
               <div className="flex flex-wrap gap-4">
                 <select
-                  value={filters.isActive}
-                  onChange={(e) => handleFilterChange('isActive', e.target.value)}
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">All Status</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
+                  {STATUS_OPTIONS.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {/* Actions */}
               <div className="flex space-x-2">
                 <button
-                  onClick={fetchClients}
+                  onClick={fetchRequests}
                   className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
-                </button>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center px-4 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Client
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Clients Table */}
+        {/* Requests Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
+          <div 
+            className="overflow-x-auto max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#6B7280 #F3F4F6'
+            }}
+          >
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Company
+                    Client
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact Person
+                    Crew Member
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Industry
+                    Request Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    Requested
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -284,21 +305,21 @@ const ClientManagement = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
+                    <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                       </div>
                     </td>
                   </tr>
-                ) : clients.length === 0 ? (
+                ) : requests.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                      No clients found
+                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                      No requests found
                     </td>
                   </tr>
                 ) : (
-                  clients.map((client) => (
-                    <tr key={client._id} className="hover:bg-gray-50">
+                  requests.map((request) => (
+                    <tr key={request._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
@@ -307,47 +328,39 @@ const ClientManagement = () => {
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{client.companyName}</div>
-                            <div className="text-sm text-gray-500">{client.phone}</div>
+                            <div className="text-sm font-medium text-gray-900">{request.client.companyName}</div>
+                            <div className="text-sm text-gray-500">{request.client.contactPerson}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{client.contactPerson}</div>
+                        <div className="text-sm font-medium text-gray-900">{request.crew.fullName}</div>
+                        <div className="text-sm text-gray-500">{request.crew.rank}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{client.email}</div>
+                        <div className="text-sm text-gray-900">{request.requestType}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{client.industry}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          client.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {client.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        {getStatusBadge(request.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(client.createdAt)}
+                        {formatDate(request.requestedAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => handleViewDetails(client._id)}
+                            onClick={() => handleViewDetails(request._id)}
                             className="text-primary-600 hover:text-primary-900"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleStatusUpdate(client._id, !client.isActive)}
-                            className={client.isActive ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"}
-                            title={client.isActive ? "Deactivate" : "Activate"}
+                            onClick={() => handleRespond(request)}
+                            className="text-gray-600 hover:text-gray-900"
+                            title="Respond"
                           >
-                            {client.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                            <MessageSquare className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -422,13 +435,13 @@ const ClientManagement = () => {
         </div>
       </div>
 
-      {/* Client Detail Modal */}
-      {showDetailModal && selectedClient && (
+      {/* Request Detail Modal */}
+      {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Client Details</h3>
+                <h3 className="text-lg font-medium text-gray-900">Request Details</h3>
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -437,65 +450,104 @@ const ClientManagement = () => {
                 </button>
               </div>
               
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Company Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedClient.companyName}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Industry</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedClient.industry}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Contact Person</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedClient.contactPerson}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedClient.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedClient.phone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <span className={`mt-1 inline-flex px-2 py-1 text-xs rounded-full ${
-                      selectedClient.isActive 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {selectedClient.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Client Information */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedClient.address}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Created At</label>
-                  <p className="mt-1 text-sm text-gray-900">{formatDate(selectedClient.createdAt)}</p>
-                </div>
-                {selectedClient.lastLogin && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Last Login</label>
-                    <p className="mt-1 text-sm text-gray-900">{formatDate(selectedClient.lastLogin)}</p>
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Client Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Company:</span>
+                      <span className="text-gray-900">{selectedRequest.client.companyName}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Contact:</span>
+                      <span className="text-gray-900">{selectedRequest.client.contactPerson}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Email:</span>
+                      <span className="text-gray-900">{selectedRequest.client.email}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Phone:</span>
+                      <span className="text-gray-900">{selectedRequest.client.phone}</span>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Crew Information */}
+                <div>
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Crew Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Name:</span>
+                      <span className="text-gray-900">{selectedRequest.crew.fullName}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Rank:</span>
+                      <span className="text-gray-900">{selectedRequest.crew.rank}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Nationality:</span>
+                      <span className="text-gray-900">{selectedRequest.crew.nationality}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium text-gray-700 w-32">Email:</span>
+                      <span className="text-gray-900">{selectedRequest.crew.email}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              {/* Request Details */}
+              <div className="mt-6">
+                <h4 className="text-md font-semibold text-gray-900 mb-3">Request Details</h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Request Type</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedRequest.requestType}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <div className="mt-1">
+                        {getStatusBadge(selectedRequest.status)}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Requested At</label>
+                      <p className="mt-1 text-sm text-gray-900">{formatDate(selectedRequest.requestedAt)}</p>
+                    </div>
+                    {selectedRequest.respondedAt && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Responded At</label>
+                        <p className="mt-1 text-sm text-gray-900">{formatDate(selectedRequest.respondedAt)}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {selectedRequest.message && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Message</label>
+                      <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">{selectedRequest.message}</p>
+                    </div>
+                  )}
+                  
+                  {selectedRequest.adminResponse && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Admin Response</label>
+                      <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">{selectedRequest.adminResponse}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => handleStatusUpdate(selectedClient._id, !selectedClient.isActive)}
-                  className={`px-4 py-2 rounded-lg ${
-                    selectedClient.isActive
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                  onClick={() => handleRespond(selectedRequest)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
-                  {selectedClient.isActive ? 'Deactivate' : 'Activate'}
+                  Respond to Request
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
@@ -509,15 +561,15 @@ const ClientManagement = () => {
         </div>
       )}
 
-      {/* Create Client Modal */}
-      {showCreateModal && (
+      {/* Response Modal */}
+      {showResponseModal && selectedRequest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Create New Client</h3>
+                <h3 className="text-lg font-medium text-gray-900">Respond to Request</h3>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => setShowResponseModal(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-6 w-6" />
@@ -526,95 +578,44 @@ const ClientManagement = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                  <input
-                    type="text"
-                    value={createForm.companyName}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, companyName: e.target.value }))}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={responseForm.status}
+                    onChange={(e) => setResponseForm(prev => ({ ...prev, status: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter company name"
-                  />
+                  >
+                    {STATUS_OPTIONS.map(status => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter email address"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                  <input
-                    type="password"
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter password"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Person</label>
-                  <input
-                    type="text"
-                    value={createForm.contactPerson}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, contactPerson: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter contact person name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    value={createForm.phone}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter phone number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Admin Response</label>
                   <textarea
-                    value={createForm.address}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, address: e.target.value }))}
-                    rows={3}
+                    value={responseForm.adminResponse}
+                    onChange={(e) => setResponseForm(prev => ({ ...prev, adminResponse: e.target.value }))}
+                    rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter company address"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
-                  <input
-                    type="text"
-                    value={createForm.industry}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, industry: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter industry"
+                    placeholder="Enter your response to the client..."
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => setShowResponseModal(false)}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateClient}
+                  onClick={handleSubmitResponse}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
-                  Create Client
+                  Submit Response
                 </button>
               </div>
             </div>
@@ -625,4 +626,4 @@ const ClientManagement = () => {
   );
 };
 
-export default ClientManagement;
+export default ClientRequests;

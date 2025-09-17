@@ -20,6 +20,32 @@ const VESSEL_TYPES = [
   'Tanker', 'AHTS', 'Yacht', 'Barge', 'Container', 'Bulk Carrier', 'Offshore', 'Other'
 ];
 
+const COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia',
+  'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
+  'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria',
+  'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad',
+  'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea',
+  'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana',
+  'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland',
+  'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan',
+  'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya',
+  'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
+  'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia',
+  'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand',
+  'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau',
+  'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar',
+  'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+  'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone',
+  'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan',
+  'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania',
+  'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
+  'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
+];
+
+
 const REQUIRED_DOCUMENTS = ['cv', 'passport', 'cdc', 'stcw', 'coc', 'seamanBook', 'visa'];
 const OPTIONAL_DOCUMENTS = ['photo'];
 
@@ -166,6 +192,10 @@ const CrewRegistration = () => {
   const onSubmit = async (data) => {
     try {
       setIsSubmitting(true);
+      console.log('Form data:', data);
+      console.log('Uploaded files:', uploadedFiles);
+      console.log('Uploaded files keys:', Object.keys(uploadedFiles));
+      console.log('Uploaded files values:', Object.values(uploadedFiles));
 
       // Check required documents
       const missingDocs = REQUIRED_DOCUMENTS.filter(doc => !uploadedFiles[doc]);
@@ -203,17 +233,33 @@ const CrewRegistration = () => {
         }
       });
 
-      const response = await api.post('/crew/register', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      console.log('Sending FormData with fields:', Array.from(formData.keys()));
+      
+      // Debug: Check what files are being sent
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`File ${key}:`, value.name, value.size, value.type);
+        } else {
+          console.log(`Field ${key}:`, value);
+        }
+      }
+
+      const response = await api.post('/crew/register', formData);
 
       toast.success('Registration successful! We will review your application soon.');
       navigate('/');
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Error response:', error.response?.data);
+      
+      // Show detailed error message
+      if (error.response?.data?.errors) {
+        console.log('Detailed validation errors:', error.response.data.errors);
+        const errorMessages = error.response.data.errors.map(err => `${err.path}: ${err.msg}`).join(', ');
+        toast.error(`Validation failed: ${errorMessages}`);
+      } else {
+        toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -309,12 +355,15 @@ const CrewRegistration = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nationality *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     {...register('nationality', { required: 'Nationality is required' })}
                     className="input-field"
-                    placeholder="Enter your nationality"
-                  />
+                  >
+                    <option value="">Select your nationality</option>
+                    {COUNTRIES.map(country => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </select>
                   {errors.nationality && (
                     <p className="text-red-500 text-sm mt-1">{errors.nationality.message}</p>
                   )}
@@ -374,7 +423,7 @@ const CrewRegistration = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sea Time Summary / Total Experience
+                    Sea Time Summary / Joining Availability
                   </label>
                   <textarea
                     {...register('seaTimeSummary')}
