@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('token');
+      
       if (!token) {
         setLoading(false);
         return;
@@ -34,9 +35,11 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data.user);
       setUserType(response.data.userType);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('Auth check failed:', error.response?.data?.message || error.message);
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      setUserType(null);
     } finally {
       setLoading(false);
     }
@@ -59,7 +62,7 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login failed:', error.response?.data?.message || error.message);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed' 

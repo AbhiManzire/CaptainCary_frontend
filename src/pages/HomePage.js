@@ -107,12 +107,9 @@ const HomePage = () => {
                 <img 
                   src="/logo-main1.png" 
                   alt="CFM Logo" 
-                  className="h-12 w-auto"
+                  className="h-16 w-auto"
                 />
-                <div className="ml-3">
-                  <h1 className="text-lg font-bold text-gray-900">CHARTER FLEET MARINE</h1>
-                  <p className="text-xs text-gray-500">INNOVATING THE MARITIME INDUSTRY FOR CENTURIES</p>
-                </div>
+              
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
@@ -163,48 +160,56 @@ const HomePage = () => {
       </div> */}
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 text-white py-20 overflow-hidden" style={{
-        backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><filter id="blur"><feGaussianBlur stdDeviation="3"/></filter></defs><rect width="1200" height="800" fill="%231e3a8a"/><rect x="0" y="0" width="1200" height="800" fill="url(%23gradient)" opacity="0.8"/><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%231e3a8a;stop-opacity:0.9"/><stop offset="100%" style="stop-color:%231e40af;stop-opacity:0.7"/></linearGradient></defs></svg>')`,
+      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-20 overflow-hidden" style={{
+        backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><filter id="blur"><feGaussianBlur stdDeviation="3"/></filter></defs><rect width="1200" height="800" fill="%230f172a"/><rect x="0" y="0" width="1200" height="800" fill="url(%23gradient)" opacity="0.8"/><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%230f172a;stop-opacity:0.9"/><stop offset="100%" style="stop-color:%231e40af;stop-opacity:0.7"/></linearGradient></defs></svg>')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
       }}>
-        <div className="absolute inset-0 bg-black opacity-40"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 bg-black  opacity-30"></div>
+        <div className="relative  ml-40 px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Main Content */}
             <div>
-              <h1 className="text-5xl md:text-6xl font-bold mb-8">
+              <h1 className="text-2xl md:text-4xl font-light mb-8 text-white">
                 <span className="relative">
                   Crew As A Service
-                  <span className="absolute bottom-0 left-0 w-24 h-1 bg-primary-400"></span>
+                  <span className="absolute bottom-0 left-0 w-24 h-1 bg-blue-400"></span>
                 </span>
               </h1>
               
               {/* Feature Boxes */}
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-primary-800 bg-opacity-80 p-6 rounded-lg border border-primary-600">
+                <div className="bg-slate-800 bg-opacity-100 p-4 rounded-lg border border-slate-700 overflow-hidden">
                   <div className="flex items-center text-white">
-                    <UserCheck className="h-6 w-6 mr-3" />
-                    <span className="font-medium">Digital Passport</span>
+                    <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                      <UserCheck className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-[20px] font-poppins font-normal whitespace-nowrap overflow-hidden">Digital Passport</span>
                   </div>
                 </div>
-                <div className="bg-primary-800 bg-opacity-80 p-6 rounded-lg border border-primary-600">
+                <div className="bg-slate-800 bg-opacity-100 p-4 rounded-lg border border-slate-700 overflow-hidden">
                   <div className="flex items-center text-white">
-                    <Shield className="h-6 w-6 mr-3" />
-                    <span className="font-medium">Compliance</span>
+                    <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                      <Shield className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-[20px] font-poppins font-normal whitespace-nowrap overflow-hidden">Compliance</span>
                   </div>
                 </div>
-                <div className="bg-primary-800 bg-opacity-80 p-6 rounded-lg border border-primary-600">
+                <div className="bg-slate-800 bg-opacity-100 p-4 rounded-lg border border-slate-700 overflow-hidden">
                   <div className="flex items-center text-white">
-                    <FileText className="h-6 w-6 mr-3" />
-                    <span className="font-medium">Live Crew Views</span>
+                    <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-[20px] font-poppins font-normal whitespace-nowrap overflow-hidden">Live Crew Views</span>
                   </div>
                 </div>
-                <div className="bg-primary-800 bg-opacity-80 p-6 rounded-lg border border-primary-600">
+                <div className="bg-slate-800 bg-opacity-100 p-4 rounded-lg border border-slate-700 overflow-hidden">
                   <div className="flex items-center text-white">
-                    <CreditCard className="h-6 w-6 mr-3" />
-                    <span className="font-medium">Deferred Payment</span>
+                    <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                      <CreditCard className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-[20px] font-poppins font-normal whitespace-nowrap overflow-hidden">Deferred Payment</span>
                   </div>
                 </div>
               </div>
@@ -212,23 +217,21 @@ const HomePage = () => {
               {/* Call to Action Button */}
               <Link
                 to="/register"
-                className="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center text-lg"
+                className="bg-white text-blue-600 px-8 py-1 rounded-full font-sans hover:bg-gray-100 transition-colors inline-flex items-center text-lg"
               >
                 CFM - Verified Professional <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>
             
             {/* Right Side - Logo Badge */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative">
-                <div className="">
-                  <div className="text-center">
-                    <img 
-                      src="/logo.png" 
-                      alt="CFM Logo" 
-                      className="h-60 w-auto mx-auto"
-                    />
-                  </div>
+            <div className="flex justify-start lg:justify-start">
+              <div className="relative ml-20 mr-4">
+                <div className="bg-slate-800 bg-opacity-50 backdrop-blur-sm p-8 rounded-2xl border border-slate-600">
+                  <img 
+                    src="/logo.png" 
+                    alt="CFM Logo" 
+                    className="h-60 w-auto mx-auto"
+                  />
                 </div>
                 <p className="text-center text-white text-sm mt-6 max-w-xs font-medium">
                   Trusted by maritime industry leaders worldwide
