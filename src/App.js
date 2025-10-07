@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SidebarProvider } from './contexts/SidebarContext';
+import { UrgentCrewProvider } from './contexts/UrgentCrewContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -14,7 +16,40 @@ import ClientDashboard from './pages/ClientDashboard';
 import CrewManagement from './pages/CrewManagement';
 import ClientManagement from './pages/ClientManagement';
 import ClientRequests from './pages/ClientRequests';
+import AdminRequests from './pages/AdminRequests';
 import RemindersManagement from './pages/RemindersManagement';
+import Reports from './pages/Reports';
+import AdminManagement from './pages/AdminManagement';
+import Settings from './pages/Settings';
+
+// Admin Routes Component
+const AdminRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/dashboard" element={<AdminDashboard />} />
+      <Route path="/crew" element={<CrewManagement />} />
+      <Route path="/clients" element={<ClientManagement />} />
+      <Route path="/requests" element={<AdminRequests />} />
+      <Route path="/reminders" element={<RemindersManagement />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/admin-management" element={<AdminManagement />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="*" element={<Navigate to="/admin/dashboard" />} />
+    </Routes>
+  );
+};
+
+// Client Routes Component
+const ClientRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/portal" element={<ClientPortal />} />
+      <Route path="/dashboard" element={<ClientDashboard />} />
+      <Route path="/requests" element={<ClientRequests />} />
+      <Route path="*" element={<Navigate to="/client/portal" />} />
+    </Routes>
+  );
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ children, userType }) => {
@@ -50,7 +85,12 @@ const ProtectedRoute = ({ children, userType }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <div className="min-h-screen bg-gray-50">
           <Toaster 
             position="top-right"
@@ -72,69 +112,35 @@ function App() {
             
             {/* Admin Routes */}
             <Route 
-              path="/admin/dashboard" 
+              path="/admin/*" 
               element={
                 <ProtectedRoute userType="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/crew" 
-              element={
-                <ProtectedRoute userType="admin">
-                  <CrewManagement />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/clients" 
-              element={
-                <ProtectedRoute userType="admin">
-                  <ClientManagement />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/requests" 
-              element={
-                <ProtectedRoute userType="admin">
-                  <ClientRequests />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/reminders" 
-              element={
-                <ProtectedRoute userType="admin">
-                  <RemindersManagement />
+                  <SidebarProvider type="admin">
+                    <UrgentCrewProvider>
+                      <AdminRoutes />
+                    </UrgentCrewProvider>
+                  </SidebarProvider>
                 </ProtectedRoute>
               } 
             />
             
             {/* Client Routes */}
-          <Route 
-            path="/client/portal" 
-            element={
-              <ProtectedRoute userType="client">
-                <ClientPortal />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/client/dashboard" 
-            element={
-              <ProtectedRoute userType="client">
-                <ClientDashboard />
-              </ProtectedRoute>
-            } 
-          />
+            <Route 
+              path="/client/*" 
+              element={
+                <ProtectedRoute userType="client">
+                  <SidebarProvider type="client">
+                    <ClientRoutes />
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
     </AuthProvider>
   );
 }

@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDropzone } from 'react-dropzone';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Upload, FileText, User, Mail, Phone, MapPin, Calendar, Ship, FileCheck } from 'lucide-react';
+import { Upload, FileText, User, Mail, Phone, MapPin, Calendar, Ship, FileCheck, ArrowLeft, Home, UserCheck } from 'lucide-react';
 import { api } from '../utils/api';
+import NotificationService from '../services/notificationService';
+import ReminderService from '../services/reminderService';
 
 const RANKS = [
   'Master / Captain', 'Chief Officer', '2nd Officer', '3rd Officer',
@@ -246,6 +248,25 @@ const CrewRegistration = () => {
 
       const response = await api.post('/crew/register', formData);
 
+      // Send notifications
+      try {
+        await NotificationService.notifyCrewConfirmation(data);
+        await NotificationService.notifyNewCrewSubmission(data);
+      } catch (notificationError) {
+        console.error('Notification failed:', notificationError);
+        // Don't fail the registration if notifications fail
+      }
+
+      // Create auto reminders for admin
+      try {
+        console.log('Creating auto reminders for new crew:', response.data);
+        await ReminderService.createAutoRemindersForNewCrew(response.data);
+        console.log('Auto reminders created successfully');
+      } catch (reminderError) {
+        console.error('Auto reminder creation failed:', reminderError);
+        // Don't fail the registration if reminders fail
+      }
+
       toast.success('Registration successful! We will review your application soon.');
       navigate('/');
     } catch (error) {
@@ -266,13 +287,58 @@ const CrewRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Crew Registration</h1>
-            <p className="text-gray-600">Join our maritime crew database</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+      {/* Beautiful Header */}
+      <header className="bg-white shadow-lg border-b-2 border-primary-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="flex items-center text-primary-600 hover:text-primary-700 transition-colors">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                <span className="font-medium">Back to Home</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <div className="flex items-center">
+                <img 
+                  src="/logo-main1.png" 
+                  alt="CFM Logo" 
+                  className="h-12 w-auto"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-6">
+              <Link to="/" className="flex items-center text-gray-600 hover:text-primary-600 transition-colors">
+                <Home className="h-4 w-4 mr-2" />
+                <span className="text-sm font-medium">Home</span>
+              </Link>
+              <Link to="/client/login" className="flex items-center text-gray-600 hover:text-primary-600 transition-colors">
+                <UserCheck className="h-4 w-4 mr-2" />
+                <span className="text-sm font-medium">Client Login</span>
+              </Link>
+            </div>
           </div>
+        </div>
+      </header>
+
+      {/* Main Content with Scrollbar */}
+      <div className="max-h-screen overflow-y-auto custom-scrollbar">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-2xl shadow-2xl border-2 border-primary-100 overflow-hidden">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
+              <div className="text-center">
+                <h1 className="text-4xl font-bold mb-3">Crew Registration</h1>
+                <p className="text-primary-100 text-lg">Join our maritime crew database and start your journey</p>
+                <div className="mt-4 flex justify-center">
+                  {/* <div className="bg-white bg-opacity-20 rounded-full px-4 py-2">
+                    <span className="text-sm font-medium">Step 1 of 1 - Complete Registration</span>
+                  </div> */}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-8">
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* Personal Information */}
@@ -530,19 +596,46 @@ const CrewRegistration = () => {
               </div>
             </section>
 
-            {/* Submit Button */}
-            <div className="flex justify-center pt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Registration'}
-              </button>
+              {/* Submit Button */}
+              <div className="flex justify-center pt-6">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-12 py-4 rounded-xl font-semibold text-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </div>
+                  ) : (
+                    'Submit Registration'
+                  )}
+                </button>
+              </div>
+            </form>
             </div>
-          </form>
+          </div>
         </div>
       </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #1e40af);
+        }
+      `}</style>
     </div>
   );
 };

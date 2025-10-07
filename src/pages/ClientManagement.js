@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import FixedSidebar from '../components/FixedSidebar';
+import { useSidebar } from '../contexts/SidebarContext';
+import '../components/PageLayout.css';
 import { 
   Ship, 
   LogOut, 
@@ -26,9 +29,10 @@ import {
   MessageSquare
 } from 'lucide-react';
 
-const ClientManagement = () => {
+const ClientManagementContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -59,11 +63,14 @@ const ClientManagement = () => {
     industry: ''
   });
 
+  // Reset search when modal opens/closes
   useEffect(() => {
-    fetchClients();
-  }, [currentPage, filters]);
+    if (!showCreateModal) {
+      setFilters(prev => ({ ...prev, search: '' }));
+    }
+  }, [showCreateModal]);
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -81,12 +88,27 @@ const ClientManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters]);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]); // Use callback dependency
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
+
+  // Debounced search to prevent too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (filters.search !== undefined) {
+        fetchClients();
+      }
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.search]);
 
   const handleCreateClient = async () => {
     try {
@@ -101,6 +123,8 @@ const ClientManagement = () => {
         address: '',
         industry: ''
       });
+      // Reset search filter when creating new client
+      setFilters(prev => ({ ...prev, search: '' }));
       fetchClients();
     } catch (error) {
       console.error('Error creating client:', error);
@@ -135,64 +159,74 @@ const ClientManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <Ship className="h-8 w-8 text-primary-600 mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user?.fullName}</span>
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={logout}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
+    <div className="min-h-screen bg-gray-50 flex page-layout-stable">
+      {/* Sidebar */}
+      <FixedSidebar 
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        user={user}
+        logout={logout}
+        reminders={[]}
+      />
+
+      {/* Main Content */}
+      <div className={`flex-1 flex flex-col ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300`}>
+        {/* Header */}
+        <header className="bg-white shadow">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center py-6">
+              <div className="flex items-center">
+                <Ship className="h-8 w-8 text-primary-600 mr-2" />
+                <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
+              </div>
+              {/* <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/admin/dashboard')}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Dashboard
+                </button>
+              </div> */}
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex-1 py-4 sm:py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
             <div className="flex items-center">
-              <Building className="h-8 w-8 text-blue-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Total Clients</p>
-                <p className="text-2xl font-semibold text-gray-900">{total}</p>
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg">
+                <Building className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Clients</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{total}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
             <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Active</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="p-2 sm:p-3 bg-green-100 rounded-lg">
+                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Active</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {clients.filter(c => c.isActive).length}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
             <div className="flex items-center">
-              <UserX className="h-8 w-8 text-red-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Inactive</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="p-2 sm:p-3 bg-red-100 rounded-lg">
+                <UserX className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Inactive</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {clients.filter(c => !c.isActive).length}
                 </p>
               </div>
@@ -213,8 +247,16 @@ const ClientManagement = () => {
                     placeholder="Search by company name, contact person, or email..."
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full"
+                    className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full"
                   />
+                  {filters.search && (
+                    <button
+                      onClick={() => handleFilterChange('search', '')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -235,7 +277,7 @@ const ClientManagement = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={fetchClients}
-                  className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 refresh-button"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
@@ -253,7 +295,7 @@ const ClientManagement = () => {
         </div>
 
         {/* Clients Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-hidden stable-table table-container">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -283,13 +325,42 @@ const ClientManagement = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
-                      <div className="flex justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <tr key={index} className="animate-pulse">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                            <div className="ml-4">
+                              <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                              <div className="h-3 bg-gray-200 rounded w-24"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 bg-gray-200 rounded w-28"></div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 bg-gray-200 rounded w-20"></div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            <div className="h-8 bg-gray-200 rounded w-16"></div>
+                            <div className="h-8 bg-gray-200 rounded w-16"></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 ) : clients.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
@@ -621,8 +692,14 @@ const ClientManagement = () => {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
+};
+
+const ClientManagement = () => {
+  return <ClientManagementContent />;
 };
 
 export default ClientManagement;

@@ -1,0 +1,85 @@
+/* Sidebar Stability CSS */
+.admin-sidebar-stable {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Prevent automatic CSS changes and ensure stable styling */
+.admin-sidebar-stable * {
+  box-sizing: border-box;
+}
+
+.admin-sidebar-stable .transition-colors {
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Ensure consistent active state styling */
+.admin-sidebar-stable button:focus {
+  outline: none;
+}
+
+/* Prevent any automatic style overrides */
+.admin-sidebar-stable button {
+  border: none;
+  background: transparent;
+}
+
+/* Force stable active state */
+.admin-sidebar-stable button.bg-blue-50 {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-right: 2px solid #2563eb !important;
+}
+
+.admin-sidebar-stable button.text-gray-600 {
+  color: #6b7280 !important;
+  background-color: transparent !important;
+  border-right: none !important;
+}
+
+.admin-sidebar-stable button:hover:not(.bg-blue-50) {
+  background-color: #f3f4f6 !important;
+}
+
+/* Client Sidebar Stability CSS */
+.client-sidebar-stable {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Prevent automatic CSS changes and ensure stable styling for client sidebar */
+.client-sidebar-stable * {
+  box-sizing: border-box;
+}
+
+.client-sidebar-stable .transition-colors {
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Ensure consistent active state styling for client sidebar */
+.client-sidebar-stable button:focus {
+  outline: none;
+}
+
+/* Prevent any automatic style overrides for client sidebar */
+.client-sidebar-stable button {
+  border: none;
+  background: transparent;
+}
+
+/* Force stable active state for client sidebar */
+.client-sidebar-stable button.bg-blue-50 {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-right: 2px solid #2563eb !important;
+}
+
+.client-sidebar-stable button.text-gray-600 {
+  color: #6b7280 !important;
+  background-color: transparent !important;
+  border-right: none !important;
+}
+
+.client-sidebar-stable button:hover:not(.bg-blue-50) {
+  background-color: #f3f4f6 !important;
+}

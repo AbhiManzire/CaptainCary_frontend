@@ -362,14 +362,14 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <div className="flex items-center mb-6">
-                <div className="bg-primary-600 text-white px-3 py-2 rounded-lg font-bold text-lg mr-3">
-                  CFM
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">CHARTER FLEET MARINE</h3>
-                </div>
-              </div>
+              
+            <div className="inline-block bg-white p-2 rounded-lg">
+                <img 
+                  src="/logo-main1.png" 
+                  alt="CFM Logo" 
+                  className="h-16 w-auto"
+                />
+            </div>
               <p className="text-primary-200 mb-6">
                 Global Crew. Trusted Systems. Flexible Terms.
               </p>

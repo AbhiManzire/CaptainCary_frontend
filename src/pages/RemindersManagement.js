@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import FixedSidebar from '../components/FixedSidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { 
   Plus, 
   Check, 
@@ -26,9 +28,10 @@ const STATUS_COLORS = {
   cancelled: 'bg-gray-100 text-gray-800'
 };
 
-const RemindersManagement = () => {
+const RemindersManagementContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -103,131 +106,143 @@ const RemindersManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </button>
-              <h1 className="text-3xl font-bold text-gray-900">Reminders Management</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">Welcome, {user?.fullName}</span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <FixedSidebar 
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        user={user}
+        logout={logout}
+        reminders={reminders}
+      />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Header Actions */}
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">All Reminders</h2>
-              <p className="text-gray-600">Manage your internal reminders and tasks</p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Reminder
-            </button>
-          </div>
-
-          {/* Reminders List */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            {reminders.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No reminders</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by creating a new reminder.</p>
+      <div className={`flex-1 flex flex-col ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300`}>
+        {/* Header */}
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div className="flex items-center">
+                <button
+                  onClick={() => navigate('/admin/dashboard')}
+                  className="mr-4 p-2 text-gray-400 hover:text-gray-600"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </button>
+                <h1 className="text-3xl font-bold text-gray-900">Reminders Management</h1>
               </div>
-            ) : (
-              <ul className="divide-y divide-gray-200">
-                {reminders.map((reminder) => (
-                  <li key={reminder._id} className="px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-medium text-gray-900">{reminder.title}</h3>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PRIORITY_COLORS[reminder.priority]}`}>
-                            {reminder.priority}
-                          </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[reminder.status]}`}>
-                            {reminder.status}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-600">{reminder.description}</p>
-                        <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Due: {new Date(reminder.dueDate).toLocaleDateString()}
+              {/* <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-500">Welcome, {user?.fullName}</span>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </button>
+              </div> */}
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <div className="flex-1 py-4 sm:py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+            {/* Header Actions */}
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">All Reminders</h2>
+                <p className="text-sm sm:text-base text-gray-600">Manage your internal reminders and tasks</p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm sm:text-base w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Reminder
+              </button>
+            </div>
+
+            {/* Reminders List */}
+            <div className="bg-white shadow overflow-hidden sm:rounded-md">
+              {reminders.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No reminders</h3>
+                  <p className="mt-1 text-sm text-gray-500">Get started by creating a new reminder.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {reminders.map((reminder) => (
+                    <li key={reminder._id} className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <h3 className="text-lg font-medium text-gray-900">{reminder.title}</h3>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PRIORITY_COLORS[reminder.priority]}`}>
+                              {reminder.priority}
+                            </span>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[reminder.status]}`}>
+                              {reminder.status}
+                            </span>
                           </div>
-                          {reminder.crewId && (
+                          <p className="mt-1 text-sm text-gray-600">{reminder.description}</p>
+                          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
                             <div className="flex items-center">
-                              <span>Crew: {reminder.crewId.fullName}</span>
+                              <Calendar className="h-4 w-4 mr-1" />
+                              Due: {new Date(reminder.dueDate).toLocaleDateString()}
                             </div>
-                          )}
-                          {reminder.clientId && (
-                            <div className="flex items-center">
-                              <span>Client: {reminder.clientId.companyName}</span>
-                            </div>
+                            {reminder.crewId && (
+                              <div className="flex items-center">
+                                <span>Crew: {reminder.crewId.fullName}</span>
+                              </div>
+                            )}
+                            {reminder.clientId && (
+                              <div className="flex items-center">
+                                <span>Client: {reminder.clientId.companyName}</span>
+                              </div>
+                            )}
+                          </div>
+                          {reminder.notes && (
+                            <p className="mt-2 text-sm text-gray-500 italic">Notes: {reminder.notes}</p>
                           )}
                         </div>
-                        {reminder.notes && (
-                          <p className="mt-2 text-sm text-gray-500 italic">Notes: {reminder.notes}</p>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {reminder.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(reminder._id, 'completed')}
+                                className="p-2 text-green-600 hover:text-green-800"
+                                title="Mark as completed"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(reminder._id, 'cancelled')}
+                                className="p-2 text-gray-600 hover:text-gray-800"
+                                title="Cancel"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => handleDeleteReminder(reminder._id)}
+                            className="p-2 text-red-600 hover:text-red-800"
+                            title="Delete"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {reminder.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleUpdateStatus(reminder._id, 'completed')}
-                              className="p-2 text-green-600 hover:text-green-800"
-                              title="Mark as completed"
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(reminder._id, 'cancelled')}
-                              className="p-2 text-gray-600 hover:text-gray-800"
-                              title="Cancel"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleDeleteReminder(reminder._id)}
-                          className="p-2 text-red-600 hover:text-red-800"
-                          title="Delete"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Create Reminder Modal */}
       {showCreateModal && (
@@ -309,6 +324,10 @@ const RemindersManagement = () => {
       )}
     </div>
   );
+};
+
+const RemindersManagement = () => {
+  return <RemindersManagementContent />;
 };
 
 export default RemindersManagement;

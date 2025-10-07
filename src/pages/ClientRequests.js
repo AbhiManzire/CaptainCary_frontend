@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import ClientSidebar from '../components/ClientSidebar';
+import { useSidebar } from '../contexts/SidebarContext';
+import '../components/PageLayout.css';
 import { 
   Ship, 
   LogOut, 
@@ -21,14 +24,17 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const ClientRequests = () => {
+const ClientRequestsContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
+  
+  // This is now only for client context
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,10 +48,10 @@ const ClientRequests = () => {
     status: ''
   });
   
-  // Response form
-  const [responseForm, setResponseForm] = useState({
-    status: '',
-    adminResponse: ''
+  
+  // Follow-up form
+  const [followUpForm, setFollowUpForm] = useState({
+    clientMessage: ''
   });
 
   const STATUS_OPTIONS = [
@@ -56,26 +62,63 @@ const ClientRequests = () => {
   ];
 
   useEffect(() => {
+    console.log('ClientRequests useEffect triggered:', { currentPage, filters, user });
     fetchRequests();
   }, [currentPage, filters]);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      
+      // Check if user is authenticated
+      if (!user) {
+        console.error('No user authenticated');
+        setLoading(false);
+        return;
+      }
+      
       const params = new URLSearchParams({
         page: currentPage,
         limit: limit,
         ...filters
       });
       
-      console.log('Fetching requests with params:', params.toString());
-      const response = await api.get(`/admin/requests?${params}`);
+      console.log('Fetching client requests with params:', params.toString());
+      console.log('User context:', { user: user?.email });
+      
+      // Use client endpoint for client requests page
+      const endpoint = '/client/requests';
+      console.log('API endpoint:', endpoint);
+      
+      const response = await api.get(`${endpoint}?${params}`);
       console.log('Requests response:', response.data);
-      setRequests(response.data.requests);
-      setTotalPages(response.data.totalPages);
-      setTotal(response.data.total);
+      console.log('Response structure:', {
+        hasRequests: !!response.data.requests,
+        requestsLength: response.data.requests?.length,
+        total: response.data.total,
+        totalPages: response.data.totalPages
+      });
+      
+      console.log('Setting requests data:', {
+        requestsCount: response.data.requests?.length,
+        firstRequest: response.data.requests?.[0],
+        clientData: response.data.requests?.[0]?.client
+      });
+      
+      setRequests(response.data.requests || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotal(response.data.total || 0);
     } catch (error) {
       console.error('Error fetching requests:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      // Ensure requests is always an array even on error
+      setRequests([]);
+      setTotalPages(1);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -89,31 +132,35 @@ const ClientRequests = () => {
 
   const handleViewDetails = async (requestId) => {
     try {
-      const response = await api.get(`/admin/requests/${requestId}`);
+      const response = await api.get(`/client/requests/${requestId}`);
       setSelectedRequest(response.data);
       setShowDetailModal(true);
+      // Hide sidebar when modal opens
+      setSidebarOpen(false);
     } catch (error) {
       console.error('Error fetching request details:', error);
     }
   };
 
-  const handleRespond = (request) => {
+
+  const handleAddFollowUp = (request) => {
     setSelectedRequest(request);
-    setResponseForm({
-      status: request.status,
-      adminResponse: request.adminResponse || ''
-    });
-    setShowResponseModal(true);
+    setFollowUpForm({ clientMessage: '' });
+    setShowFollowUpModal(true);
+    // Hide sidebar when modal opens
+    setSidebarOpen(false);
   };
 
-  const handleSubmitResponse = async () => {
+  const handleSubmitFollowUp = async () => {
     try {
-      await api.patch(`/admin/requests/${selectedRequest._id}/respond`, responseForm);
-      setShowResponseModal(false);
+      await api.patch(`/client/requests/${selectedRequest._id}/follow-up`, followUpForm);
+      setShowFollowUpModal(false);
       setShowDetailModal(false);
+      // Restore sidebar when modal closes
+      setSidebarOpen(true);
       fetchRequests();
     } catch (error) {
-      console.error('Error responding to request:', error);
+      console.error('Error adding follow-up:', error);
     }
   };
 
@@ -147,162 +194,171 @@ const ClientRequests = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
+      {/* Sidebar */}
+      <ClientSidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        user={user}
+        logout={logout}
+        notifications={[]}
+      />
+
+      {/* Main Content */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+        {/* Header */}
+        <header className="bg-white shadow">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center py-6">
               <Ship className="h-8 w-8 text-primary-600 mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">Client Requests</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user?.fullName}</span>
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={logout}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
+              <h1 className="text-2xl font-bold text-gray-900">
+                My Requests
+              </h1>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <MessageSquare className="h-8 w-8 text-blue-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Total Requests</p>
-                <p className="text-2xl font-semibold text-gray-900">{total}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <Clock className="h-8 w-8 text-yellow-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Pending</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <Check className="h-8 w-8 text-green-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Approved</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'approved').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <X className="h-8 w-8 text-red-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Rejected</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'rejected').length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters and Actions */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-              {/* Search */}
-              <div className="flex-1 max-w-md">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by client, crew, or request type..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full"
-                  />
+        <div className="flex-1 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Stats Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <MessageSquare className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Requests</p>
+                    <p className="text-2xl font-semibold text-gray-900">{total}</p>
+                  </div>
                 </div>
               </div>
-
-              {/* Filters */}
-              <div className="flex flex-wrap gap-4">
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">All Status</option>
-                  {STATUS_OPTIONS.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <Clock className="h-6 w-6 text-yellow-600" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Pending</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {requests?.filter(r => r.status === 'pending').length || 0}
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={fetchRequests}
-                  className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </button>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Check className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Approved</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {requests?.filter(r => r.status === 'approved').length || 0}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <X className="h-6 w-6 text-red-600" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Rejected</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {requests?.filter(r => r.status === 'rejected').length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
         </div>
 
-        {/* Requests Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div 
-            className="overflow-x-auto max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#6B7280 #F3F4F6'
-            }}
-          >
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Crew Member
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Request Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Requested
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            {/* Filters */}
+            <div className="bg-white rounded-lg shadow mb-8">
+              <div className="p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                  {/* Search */}
+                  <div className="flex-1 max-w-md">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search requests..."
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-4">
+                    <select
+                      value={filters.status}
+                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">All Status</option>
+                      {STATUS_OPTIONS.map(status => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={fetchRequests}
+                      className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Requests Table */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">My Requests</h3>
+              </div>
+              <div className="overflow-x-auto max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Client
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Crew Member
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Request Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Requested
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
@@ -311,54 +367,58 @@ const ClientRequests = () => {
                       </div>
                     </td>
                   </tr>
-                ) : requests.length === 0 ? (
+                ) : !requests || requests.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                      No requests found
+                      <div className="flex flex-col items-center">
+                        <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-lg font-medium text-gray-900 mb-2">No requests found</p>
+                        <p className="text-sm text-gray-500">Try adjusting your search or filter criteria</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  requests.map((request) => (
+                  requests?.map((request) => (
                     <tr key={request._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                              <Building className="h-5 w-5 text-primary-600" />
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <Building className="h-5 w-5 text-blue-600" />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{request.client.companyName}</div>
-                            <div className="text-sm text-gray-500">{request.client.contactPerson}</div>
+                            <div className="text-sm font-medium text-gray-900">{request.client?.companyName || 'N/A'}</div>
+                            <div className="text-sm text-gray-500">{request.client?.contactPerson || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{request.crew.fullName}</div>
-                        <div className="text-sm text-gray-500">{request.crew.rank}</div>
+                        <div className="text-sm font-medium text-gray-900">{request.crew?.fullName || 'N/A'}</div>
+                        <div className="text-sm text-gray-500">{request.crew?.rank || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{request.requestType}</div>
+                        <div className="text-sm text-gray-900">{request.requestType || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(request.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(request.requestedAt)}
+                        {request.requestedAt ? formatDate(request.requestedAt) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => handleViewDetails(request._id)}
-                            className="text-primary-600 hover:text-primary-900"
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleRespond(request)}
-                            className="text-gray-600 hover:text-gray-900"
-                            title="Respond"
+                            onClick={() => handleAddFollowUp(request)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                            title="Add Follow-up"
                           >
                             <MessageSquare className="h-4 w-4" />
                           </button>
@@ -367,9 +427,9 @@ const ClientRequests = () => {
                     </tr>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+                  </tbody>
+                </table>
+              </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -443,7 +503,11 @@ const ClientRequests = () => {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Request Details</h3>
                 <button
-                  onClick={() => setShowDetailModal(false)}
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    // Restore sidebar when modal closes
+                    setSidebarOpen(true);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-6 w-6" />
@@ -544,12 +608,6 @@ const ClientRequests = () => {
               {/* Action Buttons */}
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => handleRespond(selectedRequest)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Respond to Request
-                </button>
-                <button
                   onClick={() => setShowDetailModal(false)}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                 >
@@ -561,15 +619,20 @@ const ClientRequests = () => {
         </div>
       )}
 
-      {/* Response Modal */}
-      {showResponseModal && selectedRequest && (
+
+      {/* Follow-up Modal */}
+      {showFollowUpModal && selectedRequest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Respond to Request</h3>
+                <h3 className="text-lg font-medium text-gray-900">Add Follow-up Message</h3>
                 <button
-                  onClick={() => setShowResponseModal(false)}
+                  onClick={() => {
+                    setShowFollowUpModal(false);
+                    // Restore sidebar when modal closes
+                    setSidebarOpen(true);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-6 w-6" />
@@ -578,52 +641,48 @@ const ClientRequests = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={responseForm.status}
-                    onChange={(e) => setResponseForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  >
-                    {STATUS_OPTIONS.map(status => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Admin Response</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
                   <textarea
-                    value={responseForm.adminResponse}
-                    onChange={(e) => setResponseForm(prev => ({ ...prev, adminResponse: e.target.value }))}
+                    value={followUpForm.clientMessage}
+                    onChange={(e) => setFollowUpForm(prev => ({ ...prev, clientMessage: e.target.value }))}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Enter your response to the client..."
+                    placeholder="Add your follow-up message or questions..."
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowResponseModal(false)}
+                  onClick={() => {
+                    setShowFollowUpModal(false);
+                    // Restore sidebar when modal closes
+                    setSidebarOpen(true);
+                  }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleSubmitResponse}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  onClick={handleSubmitFollowUp}
+                  disabled={!followUpForm.clientMessage.trim()}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit Response
+                  Send Follow-up
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
+};
+
+const ClientRequests = () => {
+  return <ClientRequestsContent />;
 };
 
 export default ClientRequests;
