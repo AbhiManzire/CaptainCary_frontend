@@ -7,18 +7,12 @@ import { useSidebar } from '../contexts/SidebarContext';
 import '../components/PageLayout.css';
 import { 
   Ship, 
-  LogOut, 
   Search, 
-  Plus, 
   Eye, 
-  Edit, 
-  Check, 
+   
   X, 
   Building,
-  Mail,
-  Phone,
-  MapPin,
-  Users,
+ 
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -35,6 +29,8 @@ const ClientManagementContent = () => {
   const { sidebarOpen, setSidebarOpen } = useSidebar();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isApiCallInProgress, setIsApiCallInProgress] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [selectedClient, setSelectedClient] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -72,7 +68,11 @@ const ClientManagementContent = () => {
 
   const fetchClients = useCallback(async () => {
     try {
-      setLoading(true);
+      setIsApiCallInProgress(true);
+      // Only set loading to true if not already loading to prevent rapid state changes
+      if (!loading) {
+        setLoading(true);
+      }
       const params = new URLSearchParams({
         page: currentPage,
         limit: limit,
@@ -87,28 +87,41 @@ const ClientManagementContent = () => {
       console.error('Error fetching clients:', error);
     } finally {
       setLoading(false);
+      setIsApiCallInProgress(false);
     }
   }, [currentPage, filters]);
 
+  // Combined effect for filters, search, and pagination to prevent multiple API calls
   useEffect(() => {
+    // Skip initial render
+    if (filters.search === undefined && currentPage === 1) return;
+    
+    const timeoutId = setTimeout(() => {
+      fetchClients();
+    }, 300); // 300ms delay to prevent rapid API calls
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.search, filters.isActive, currentPage]);
+
+  // Debounced refresh function to prevent rapid clicks
+  const debouncedRefresh = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    // Prevent refresh if called within 2 seconds
+    if (timeSinceLastRefresh < 2000) {
+      console.log('⏳ Refresh too soon, please wait...');
+      return;
+    }
+    
+    setLastRefreshTime(now);
     fetchClients();
-  }, [fetchClients]); // Use callback dependency
+  }, [lastRefreshTime, fetchClients]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
-
-  // Debounced search to prevent too many API calls
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (filters.search !== undefined) {
-        fetchClients();
-      }
-    }, 300); // 300ms delay
-
-    return () => clearTimeout(timeoutId);
-  }, [filters.search]);
 
   const handleCreateClient = async () => {
     try {
@@ -159,7 +172,7 @@ const ClientManagementContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex page-layout-stable">
+    <div className="client-management-container min-h-screen bg-gray-50 flex page-layout-stable">
       {/* Sidebar */}
       <FixedSidebar 
         sidebarOpen={sidebarOpen}
@@ -273,23 +286,6 @@ const ClientManagementContent = () => {
                 </select>
               </div>
 
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={fetchClients}
-                  className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 refresh-button"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </button>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center px-4 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Client
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -297,7 +293,7 @@ const ClientManagementContent = () => {
         {/* Clients Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden stable-table table-container">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="client-table min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -491,6 +487,8 @@ const ClientManagementContent = () => {
             </div>
           )}
         </div>
+
+      
       </div>
 
       {/* Client Detail Modal */}

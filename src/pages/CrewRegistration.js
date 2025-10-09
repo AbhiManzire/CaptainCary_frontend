@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import { Upload, FileText, User, Mail, Phone, MapPin, Calendar, Ship, FileCheck, ArrowLeft, Home, UserCheck } from 'lucide-react';
 import { api } from '../utils/api';
 import NotificationService from '../services/notificationService';
-import ReminderService from '../services/reminderService';
 
 const RANKS = [
   'Master / Captain', 'Chief Officer', '2nd Officer', '3rd Officer',
@@ -257,15 +256,7 @@ const CrewRegistration = () => {
         // Don't fail the registration if notifications fail
       }
 
-      // Create auto reminders for admin
-      try {
-        console.log('Creating auto reminders for new crew:', response.data);
-        await ReminderService.createAutoRemindersForNewCrew(response.data);
-        console.log('Auto reminders created successfully');
-      } catch (reminderError) {
-        console.error('Auto reminder creation failed:', reminderError);
-        // Don't fail the registration if reminders fail
-      }
+      // Auto reminders are now created on the backend
 
       toast.success('Registration successful! We will review your application soon.');
       navigate('/');

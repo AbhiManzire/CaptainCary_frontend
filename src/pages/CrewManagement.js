@@ -61,6 +61,7 @@ const CrewManagementContent = () => {
   const [crews, setCrews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isApiCallInProgress, setIsApiCallInProgress] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [maxRetries] = useState(3);
   const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected', 'disconnected', 'retrying'
@@ -179,6 +180,21 @@ const CrewManagementContent = () => {
     adminNotes: ''
   });
 
+  // Debounced refresh function to prevent rapid clicks
+  const debouncedRefresh = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    // Prevent refresh if called within 2 seconds
+    if (timeSinceLastRefresh < 2000) {
+      console.log('⏳ Refresh too soon, please wait...');
+      return;
+    }
+    
+    setLastRefreshTime(now);
+    fetchCrews();
+  }, [lastRefreshTime]);
+
   const fetchCrews = useCallback(async () => {
     // Prevent multiple simultaneous API calls
     if (fetchCrewsRef.current) {
@@ -189,7 +205,10 @@ const CrewManagementContent = () => {
     try {
       fetchCrewsRef.current = true;
       setIsApiCallInProgress(true);
-      setLoading(true);
+      // Only set loading to true if not already loading to prevent rapid state changes
+      if (!loading) {
+        setLoading(true);
+      }
       const params = new URLSearchParams({
         page: currentPage,
         limit: limit,
@@ -256,33 +275,26 @@ const CrewManagementContent = () => {
     fetchClients();
   }, []); // Only run on mount
 
-  // Trigger fetchCrews when filters change (except search)
+  // Combined effect for filters, search, and pagination to prevent multiple API calls
   useEffect(() => {
-    if (filters.search === undefined) return; // Skip initial render
+    // Skip initial render
+    if (filters.search === undefined && currentPage === 1) return;
     
     const timeoutId = setTimeout(() => {
       fetchCrews();
-    }, 300); // 300ms delay for filter changes
+    }, 300); // 300ms delay to prevent rapid API calls
 
     return () => clearTimeout(timeoutId);
-  }, [filters.status, filters.rank, filters.nationality, filters.vesselExperience, filters.submissionDateFrom, filters.submissionDateTo]);
-
-  // Debounced search to prevent too many API calls
-  useEffect(() => {
-    if (filters.search === undefined) return; // Skip initial render
-    
-    const timeoutId = setTimeout(() => {
-      fetchCrews();
-    }, 500); // 500ms delay for search
-
-    return () => clearTimeout(timeoutId);
-  }, [filters.search]);
-
-  // Trigger fetchCrews when pagination changes
-  useEffect(() => {
-    if (currentPage === 1) return; // Skip initial render
-    fetchCrews();
-  }, [currentPage]);
+  }, [
+    filters.status, 
+    filters.rank, 
+    filters.nationality, 
+    filters.vesselExperience, 
+    filters.submissionDateFrom, 
+    filters.submissionDateTo,
+    filters.search,
+    currentPage
+  ]);
 
   // Debug crews state changes (commented out to prevent performance issues)
   // useEffect(() => {
@@ -757,7 +769,7 @@ const CrewManagementContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex page-layout-stable">
+    <div className="crew-management-container min-h-screen bg-gray-50 flex page-layout-stable">
       {/* Sidebar */}
       <FixedSidebar 
         sidebarOpen={sidebarOpen}
@@ -880,13 +892,13 @@ const CrewManagementContent = () => {
               {/* Action Buttons */}
               <div className="flex space-x-2">
                 <button
-                  onClick={fetchCrews}
+                  onClick={debouncedRefresh}
                   disabled={isApiCallInProgress}
-                  className={`flex items-center px-3 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-sm ${
-                    isApiCallInProgress ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`refresh-button flex items-center px-3 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm ${
+                    isApiCallInProgress ? 'opacity-50 cursor-not-allowed loading' : ''
                   }`}
                 >
-                  <RefreshCw className={`h-4 w-4 mr-1 ${isApiCallInProgress ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isApiCallInProgress ? 'refresh-spin' : ''}`} />
                   {isApiCallInProgress ? 'Refreshing...' : 'Refresh'}
                 </button>
                 <button
@@ -1228,13 +1240,14 @@ const CrewManagementContent = () => {
         {/* Crew Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div 
-            className="overflow-x-auto max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg"
+            className="table-container overflow-x-auto overflow-y-auto border border-gray-200 rounded-lg"
             style={{
               scrollbarWidth: 'thin',
-              scrollbarColor: '#6B7280 #F3F4F6'
+              scrollbarColor: '#6B7280 #F3F4F6',
+              maxHeight: '400px' // 4 rows + pagination space
             }}
           >
-            <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
+            <table className="crew-table min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
@@ -1370,6 +1383,68 @@ const CrewManagementContent = () => {
                 )}
               </tbody>
             </table>
+            
+            {/* Pagination - Inside Table Container */}
+            {totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to{' '}
+                      <span className="font-medium">{Math.min(currentPage * limit, total)}</span> of{' '}
+                      <span className="font-medium">{total}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      {[...Array(totalPages)].map((_, i) => (
+                        <button
+                          key={i + 1}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === i + 1
+                              ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1476,13 +1551,13 @@ const CrewManagementContent = () => {
                       Export Data
                     </button>
                     <button
-                      onClick={fetchCrews}
+                      onClick={debouncedRefresh}
                       disabled={isApiCallInProgress}
-                      className={`w-full flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors ${
-                        isApiCallInProgress ? 'opacity-50 cursor-not-allowed' : ''
+                      className={`refresh-button w-full flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 ${
+                        isApiCallInProgress ? 'opacity-50 cursor-not-allowed loading' : ''
                       }`}
                     >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${isApiCallInProgress ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isApiCallInProgress ? 'refresh-spin' : ''}`} />
                       {isApiCallInProgress ? 'Refreshing...' : 'Refresh Data'}
                     </button>
                   </div>
@@ -1491,67 +1566,6 @@ const CrewManagementContent = () => {
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to{' '}
-                    <span className="font-medium">{Math.min(currentPage * limit, total)}</span> of{' '}
-                    <span className="font-medium">{total}</span> results
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          currentPage === i + 1
-                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

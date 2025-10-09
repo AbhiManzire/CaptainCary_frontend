@@ -339,7 +339,7 @@ const ClientRequestsContent = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Client
+                        Company
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Crew Member
@@ -388,8 +388,8 @@ const ClientRequestsContent = () => {
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{request.client?.companyName || 'N/A'}</div>
-                            <div className="text-sm text-gray-500">{request.client?.contactPerson || 'N/A'}</div>
+                            <div className="text-sm font-medium text-gray-900">{user?.companyName || 'N/A'}</div>
+                            <div className="text-sm text-gray-500">{user?.contactPerson || 'N/A'}</div>
                           </div>
                         </div>
                       </td>

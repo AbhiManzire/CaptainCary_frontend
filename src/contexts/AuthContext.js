@@ -28,8 +28,8 @@ export const AuthProvider = ({ children }) => {
     
     window.addEventListener('auth:logout', handleLogout);
     
-    // Keep alive mechanism - disabled in development mode
-    const keepAliveInterval = process.env.NODE_ENV === 'production' ? setInterval(async () => {
+    // Keep alive mechanism - enabled for both development and production
+    const keepAliveInterval = setInterval(async () => {
       if (user) {
         try {
           await api.get('/auth/keep-alive');
@@ -40,16 +40,17 @@ export const AuthProvider = ({ children }) => {
           }
         }
       }
-    }, 30 * 60 * 1000) : null; // Disabled in development
+    }, 30 * 60 * 1000); // Every 30 minutes
 
-    // Token refresh mechanism - disabled in development mode
-    const tokenRefreshInterval = process.env.NODE_ENV === 'production' ? setInterval(async () => {
+    // Token refresh mechanism - enabled for both development and production
+    const tokenRefreshInterval = setInterval(async () => {
       if (user) {
         try {
           const response = await api.post('/auth/refresh');
           const { token } = response.data;
           localStorage.setItem('token', token);
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          console.log('Token refreshed successfully');
         } catch (error) {
           console.error('Token refresh failed:', error);
           if (error.response?.status === 401) {
@@ -57,12 +58,29 @@ export const AuthProvider = ({ children }) => {
           }
         }
       }
-    }, 24 * 60 * 60 * 1000) : null; // Disabled in development
+    }, 20 * 60 * 60 * 1000); // Every 20 hours (before 24h expiration)
+    
+    // Additional frequent token refresh for active users (every 2 hours)
+    const frequentRefreshInterval = setInterval(async () => {
+      if (user) {
+        try {
+          const response = await api.post('/auth/refresh');
+          const { token } = response.data;
+          localStorage.setItem('token', token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          console.log('Frequent token refresh completed');
+        } catch (error) {
+          console.error('Frequent token refresh failed:', error);
+          // Don't logout on frequent refresh failure, just log it
+        }
+      }
+    }, 2 * 60 * 60 * 1000); // Every 2 hours
     
     return () => {
       window.removeEventListener('auth:logout', handleLogout);
       if (keepAliveInterval) clearInterval(keepAliveInterval);
       if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+      if (frequentRefreshInterval) clearInterval(frequentRefreshInterval);
     };
   }, []); // Remove user dependency to prevent infinite loop
 
@@ -104,18 +122,38 @@ export const AuthProvider = ({ children }) => {
         'No token, authorization denied'
       ];
       
-      if (error.response?.status === 401 && 
-          authErrorMessages.includes(error.response?.data?.message)) {
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
-        setUser(null);
-        setUserType(null);
-      } else if (error.response?.status === 401) {
-        // For other 401 errors, also clear token
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
-        setUser(null);
-        setUserType(null);
+      // Try to refresh token if it's expired
+      if (error.response?.status === 401) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            console.log('Attempting token refresh...');
+            const refreshResponse = await api.post('/auth/refresh');
+            const { token: newToken } = refreshResponse.data;
+            localStorage.setItem('token', newToken);
+            api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+            
+            // Retry the auth check with new token
+            const retryResponse = await api.get('/auth/me');
+            if (retryResponse.data && retryResponse.data.user) {
+              console.log('Token refresh successful, setting user:', retryResponse.data.user);
+              setUser(retryResponse.data.user);
+              setUserType(retryResponse.data.userType);
+              setLoading(false);
+              return;
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+          }
+        }
+        
+        // Only clear token if refresh also failed
+        if (authErrorMessages.includes(error.response?.data?.message)) {
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
+          setUser(null);
+          setUserType(null);
+        }
       } else {
         // For network errors, keep the token and try again later
         console.log('Network error, keeping token for retry');

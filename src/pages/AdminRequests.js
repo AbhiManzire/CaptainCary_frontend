@@ -371,16 +371,13 @@ const AdminRequests = () => {
               </div>
             </div>
 
-            {/* Requests Table with Sidebar */}
+            {/* Requests Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="flex">
-                {/* Main Table */}
-                <div className="flex-1">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Client Requests</h3>
-                  </div>
-                  <div className="overflow-x-auto max-h-[300px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#6B7280 #F3F4F6' }}>
-                    <table className="min-w-full divide-y divide-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Client Requests</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -468,85 +465,7 @@ const AdminRequests = () => {
                       ))
                     )}
                   </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Sidebar */}
-                <div className="w-80 bg-gray-50 border-l border-gray-200 max-h-[300px] overflow-y-auto">
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions & Info</h3>
-                    
-                    {/* Quick Stats */}
-                    <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Request Stats</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Total Requests:</span>
-                          <span className="font-medium">{total}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Pending:</span>
-                          <span className="font-medium text-yellow-600">{requests.filter(r => r.status === 'pending').length}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Approved:</span>
-                          <span className="font-medium text-green-600">{requests.filter(r => r.status === 'approved').length}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Rejected:</span>
-                          <span className="font-medium text-red-600">{requests.filter(r => r.status === 'rejected').length}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Filters */}
-                    <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Filters</h4>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => handleFilterChange('status', 'pending')}
-                          className="w-full text-left px-3 py-2 text-sm bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
-                        >
-                          Show Pending Only
-                        </button>
-                        <button
-                          onClick={() => handleFilterChange('status', 'approved')}
-                          className="w-full text-left px-3 py-2 text-sm bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors"
-                        >
-                          Show Approved Only
-                        </button>
-                        <button
-                          onClick={() => setFilters({
-                            search: '',
-                            status: '',
-                            requestType: '',
-                            urgency: ''
-                          })}
-                          className="w-full text-left px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          Clear All Filters
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Recent Activity */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Requests</h4>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {requests.slice(0, 5).map((request) => (
-                          <div key={request._id} className="text-xs text-gray-600 border-b border-gray-200 pb-2">
-                            <div className="font-medium text-gray-900">{request.client?.companyName || 'N/A'}</div>
-                            <div className="text-gray-500">{request.crew?.fullName} • {formatDate(request.requestedAt)}</div>
-                            <div className="flex items-center mt-1">
-                              {getStatusBadge(request.status)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </table>
               </div>
             </div>
 
@@ -584,6 +503,81 @@ const AdminRequests = () => {
                 </nav>
               </div>
             )}
+
+            {/* Quick Actions & Info - Table Bottom */}
+            <div className="bg-white rounded-lg shadow p-6 mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions & Info</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Request Stats */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Request Stats</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Requests:</span>
+                      <span className="font-medium">{total}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Pending:</span>
+                      <span className="font-medium text-yellow-600">{requests.filter(r => r.status === 'pending').length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Approved:</span>
+                      <span className="font-medium text-green-600">{requests.filter(r => r.status === 'approved').length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Rejected:</span>
+                      <span className="font-medium text-red-600">{requests.filter(r => r.status === 'rejected').length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Filters */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Filters</h4>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleFilterChange('status', 'pending')}
+                      className="w-full text-left px-3 py-2 text-sm bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
+                    >
+                      Show Pending Only
+                    </button>
+                    <button
+                      onClick={() => handleFilterChange('status', 'approved')}
+                      className="w-full text-left px-3 py-2 text-sm bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors"
+                    >
+                      Show Approved Only
+                    </button>
+                    <button
+                      onClick={() => setFilters({
+                        search: '',
+                        status: '',
+                        requestType: '',
+                        urgency: ''
+                      })}
+                      className="w-full text-left px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recent Requests */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Requests</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {requests.slice(0, 5).map((request) => (
+                      <div key={request._id} className="text-xs text-gray-600 border-b border-gray-200 pb-2">
+                        <div className="font-medium text-gray-900">{request.client?.companyName || 'N/A'}</div>
+                        <div className="text-gray-500">{request.crew?.fullName} • {formatDate(request.requestedAt)}</div>
+                        <div className="flex items-center mt-1">
+                          {getStatusBadge(request.status)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

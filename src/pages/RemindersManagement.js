@@ -172,7 +172,15 @@ const RemindersManagementContent = () => {
                   <p className="mt-1 text-sm text-gray-500">Get started by creating a new reminder.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-200">
+                <div 
+                  className="reminders-container overflow-y-auto"
+                  style={{
+                    maxHeight: '400px',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#6B7280 #F3F4F6'
+                  }}
+                >
+                  <ul className="divide-y divide-gray-200">
                   {reminders.map((reminder) => (
                     <li key={reminder._id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
@@ -237,7 +245,8 @@ const RemindersManagementContent = () => {
                       </div>
                     </li>
                   ))}
-                </ul>
+                  </ul>
+                </div>
               )}
             </div>
           </div>

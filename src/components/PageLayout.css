@@ -1,1 +1,215 @@
- 
+/* Fix for UI vibration in Crew Management page */
+.crew-management-container {
+  /* Prevent layout shifts */
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Smooth transitions for buttons */
+.refresh-button {
+  transition: all 0.2s ease-in-out;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+.refresh-button:hover {
+  transform: translateZ(0) scale(1.02);
+}
+
+.refresh-button:active {
+  transform: translateZ(0) scale(0.98);
+}
+
+/* Custom smooth spin animation for refresh button */
+.refresh-spin {
+  animation: smoothSpin 1.5s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes smoothSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Prevent animation conflicts with Tailwind */
+.animate-spin {
+  animation: none !important;
+}
+
+/* Smooth refresh button states */
+.refresh-button.loading {
+  pointer-events: none;
+  position: relative;
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.refresh-button:not(:disabled):hover {
+  transform: translateZ(0) scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-button.loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Smooth table transitions */
+.crew-table, .client-table {
+  transition: opacity 0.3s ease-in-out;
+  width: 100%;
+  table-layout: auto;
+}
+
+.crew-table tbody tr, .client-table tbody tr {
+  transition: background-color 0.2s ease-in-out;
+  height: 80px; /* Fixed row height for consistent 4-row display */
+}
+
+.crew-table tbody td, .client-table tbody td {
+  padding: 12px 24px;
+  vertical-align: middle;
+}
+
+/* Table container improvements */
+.table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px; /* Show 4 rows + pagination space */
+}
+
+/* Ensure proper scrolling */
+.overflow-x-auto {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+/* Fix for right side content visibility */
+.crew-management-container .flex-1 {
+  overflow-x: auto;
+  overflow-y: visible;
+  min-width: 0;
+}
+
+/* Ensure table doesn't get cut off */
+.crew-table {
+  min-width: 1200px;
+  width: max-content;
+}
+
+/* Better scrollbar styling */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Ensure table header stays visible during scroll */
+.crew-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f9fafb;
+}
+
+/* Smooth scrolling for table */
+.table-container {
+  scroll-behavior: smooth;
+}
+
+/* Reminders container styling */
+.reminders-container {
+  scroll-behavior: smooth;
+}
+
+.reminders-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reminders-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.reminders-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.reminders-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Prevent rapid state change vibrations */
+.loading-state {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Client Management specific styles */
+.client-management-container {
+  transform: translateZ(0);
+  will-change: auto;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Crew Management specific styles */
+.crew-management-container {
+  transform: translateZ(0);
+  will-change: auto;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Fix for any potential CSS conflicts */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent text selection during loading */
+.loading {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
