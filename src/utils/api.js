@@ -6,7 +6,7 @@ const API_BASE_URL = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 60 seconds timeout for production
+  timeout: 120000, // 2 minutes timeout for file uploads
   headers: {
     'Content-Type': 'application/json',
   },

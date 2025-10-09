@@ -245,7 +245,9 @@ const CrewRegistration = () => {
         }
       }
 
-      const response = await api.post('/crew/register', formData);
+      const response = await api.post('/crew/register', formData, {
+        timeout: 180000 // 3 minutes timeout for crew registration with large files
+      });
 
       // Send notifications
       try {
