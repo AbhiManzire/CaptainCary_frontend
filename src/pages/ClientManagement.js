@@ -273,8 +273,8 @@ const ClientManagementContent = () => {
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-4">
+              {/* Filters and Actions */}
+              <div className="flex flex-wrap gap-4 items-center">
                 <select
                   value={filters.isActive}
                   onChange={(e) => handleFilterChange('isActive', e.target.value)}
@@ -284,6 +284,15 @@ const ClientManagementContent = () => {
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
+                
+                {/* Add Client Button */}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200"
+                >
+                  <Building className="h-4 w-4 mr-2" />
+                  Add Client
+                </button>
               </div>
 
             </div>
